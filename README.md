@@ -49,6 +49,10 @@ python chatbot.py --chat --verbose
 
 `--ingest` loads and stores the main chunks only. `--ask` answers one question without persistent history; `--chat` rewrites follow-ups using the last six messages (three user/assistant turns) and keeps running after a failed request. `--eval` reports retrieval hit rate and judged answer correctness for all ten questions, returning a non-zero exit code for fewer than eight retrieval hits or a service failure. `--verbose` adds retrieved labels and rewritten questions to the time-stamped logs; normal progress goes to logs and bot answers go to standard output.
 
+## How to read the code
+
+Start with the notebook: each cell does one small job, and every code line has an explanation. The script uses the same named steps and ordinary loops; there are no custom classes, nested comprehensions, type-interface imports, or generic retry adapters. Google's SDK handles embedding-request retries directly.
+
 ## What changes from Session 9
 
 - **Two-stage chunking:** split at `#` section and `##` topic headings, then recursively split long topics with `chunk_size=800` and `chunk_overlap=100` characters. Heading metadata is retained; overlap is a target and natural paragraph/word boundaries can reduce it.
@@ -86,7 +90,7 @@ CWRU-Fall-2026-Session-10/
 - “What about boots?” works as a follow-up to the used-item return question.
 - No API keys are committed.
 
-Local verification finds **7 sections, 58 topics, 59 heading pieces, 67 main chunks, and 108 fixed-size chunks**. Returns produces **2 main chunks** (788 and 230 characters). The original Word file is unchanged, and both chunk sets can be built without keys; the notebook is unexecuted. Live model availability, retrieval hit rate, and answer/judge quality require your keys and have not been measured here.
+Local verification finds **7 sections, 58 topics, 59 heading pieces, 67 main chunks, and 108 fixed-size chunks**. Returns produces **2 main chunks** (788 and 230 characters). The original Word file is unchanged, and both chunk sets can be built without keys; the notebook is unexecuted. A live embedding test returned 3,072 dimensions. Full retrieval hit rate and generated-answer/judge quality still require the evaluation run with your keys.
 
 ## Troubleshooting
 
@@ -95,7 +99,7 @@ Local verification finds **7 sections, 58 topics, 59 heading pieces, 67 main chu
 | Missing key | Copy `.env.example` to `.env` once and fill both values; never commit them. An authentication error means check your key and account access. |
 | Handbook missing | Put the unchanged file at `data/support_handbook.docx`. |
 | Dimension or metric mismatch | The lab refuses to write. An index cannot change dimension in place: deletion and recreation require re-ingestion, and **deleting this shared index removes Session 9 data too**. Preserve the original data/settings and arrange to restore Session 9 before recreating `trailmix-handbook` with the measured dimension and cosine metric; the code never deletes it automatically. |
-| Gemini `500 INTERNAL` / `503 UNAVAILABLE` during embedding | Google returned a server error before Pinecone received a vector. The embedding adapter retries transient errors up to five outer attempts with 2/4/8/16-second waits; the SDK may also retry internally. If failures persist, wait a minute and rerun the connection cell or CLI command. Keep the existing model and index; deleting Pinecone cannot fix a Google server error. See [Google troubleshooting](https://aistudio.google.com/docs/troubleshooting). |
+| Gemini `500 INTERNAL` / `503 UNAVAILABLE` during embedding | Google returned a server error before Pinecone received a vector. The Google SDK retries transient errors for up to five total attempts with automatic backoff and a 30-second timeout per request. There is no extra retry class to follow. If failures persist, wait a minute and rerun the connection cell or CLI command. Keep the existing model and index; deleting Pinecone cannot fix a Google server error. See [Google troubleshooting](https://aistudio.google.com/docs/troubleshooting). |
 | 429 / rate limit | Wait and retry; check quota and billing. The chat, rewrite, and judge requests use up to three wrapper attempts before reporting failure. |
 | Empty retrieval | Did you run `--ingest`? Wait a few more seconds after upsert, then retry; Pinecone search visibility is eventual. |
 | `iter_inner_content` missing | Upgrade with `pip install --upgrade 'python-docx>=1.1'`; this lab pins 1.2.0. |
